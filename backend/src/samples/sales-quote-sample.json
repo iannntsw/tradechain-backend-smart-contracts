@@ -1,0 +1,40 @@
+{
+    "documentId": "QT-2025-007",
+    "quoteNumber": "QT-2025-007",
+    "recipient": {
+        "name": "John Tan",
+        "emailAddress": "purchase@gmail.com",
+        "phoneNumber": "+65 9123 4567",
+        "companyName": "TechCorp Pte Ltd",
+        "customerId": "CUST-00123",
+        "fullAddress": {
+            "address": "123 Orchard Road",
+            "city": "Singapore",
+            "state": "Singapore",
+            "zipcode": "238888"
+        },
+        "isSignable": false
+    },
+    "docDetails": {
+        "documentType": "SALES-QUOTE",
+        "validityPeriod": "30 days",
+        "quoteDate": 1734441600,
+        "comments": "Thank you for your interest. Prices are valid for 30 days from date of issue.",
+        "orderInfo": [
+            {
+                "itemDesc": "Dell XPS 13 Laptop (Intel i7, 16GB RAM, 512GB SSD)",
+                "itemAmt": 1899.0
+            },
+            {
+                "itemDesc": "Wireless Mouse (Logitech MX Master 3S)",
+                "itemAmt": 149.0
+            },
+            {
+                "itemDesc": "27-inch 4K Monitor (Dell UltraSharp)",
+                "itemAmt": 699.0
+            }
+        ],
+        "currency": "SGD",
+        "finalAmt": 2747.0
+    }
+}

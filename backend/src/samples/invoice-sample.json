@@ -1,0 +1,48 @@
+{
+  "documentId": "INV-2025-089",
+  "quoteNumber": "QT-2025-007",
+  "recipient": {
+    "companyName": "BlueWave Technologies Pte Ltd",
+    "emailAddress": "accounts@bluewave.com.sg",
+    "phoneNumber": "+65 6987 1234",
+    "fullAddress": {
+      "address": "21 Science Park Drive",
+      "city": "Singapore",
+      "state": "Singapore",
+      "zipcode": "118222"
+    },
+    "isSignable": false
+  },
+  "docDetails": {
+    "documentType": "INVOICE",
+    "date": 1737072000,
+    "terms": 30,
+    "invoiceInfo": [
+      {
+        "serialNo": "001",
+        "invDesc": "AI Data Processing Subscription (Monthly)",
+        "invQty": 1,
+        "unitPrice": 1200.0,
+        "productAmt": 1200.0
+      },
+      {
+        "serialNo": "002",
+        "invDesc": "Custom Analytics Dashboard Development",
+        "invQty": 1,
+        "unitPrice": 3500.0,
+        "productAmt": 3500.0
+      },
+      {
+        "serialNo": "003",
+        "invDesc": "On-site Integration & Training (2 Days)",
+        "invQty": 2,
+        "unitPrice": 800.0,
+        "productAmt": 1600.0
+      }
+    ],
+    "currency": "SGD",
+    "totalAmt": 6300.0,
+    "gst": 441.0,
+    "finalAmt": 6741.0
+  }
+}

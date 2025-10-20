@@ -1,0 +1,43 @@
+{
+  "documentId": "DO-2025-078",
+  "quoteNumber": "QT-2025-007",
+  "recipient": {
+    "name": "Alex Wong",
+    "emailAddress": "alex.wong@greentech.com.sg",
+    "phoneNumber": "+65 8123 4567",
+    "companyName": "GreenTech Solutions Pte Ltd",
+    "fullAddress": {
+      "address": "12 Jurong Innovation Drive",
+      "city": "Singapore",
+      "state": "Singapore",
+      "zipcode": "609901"
+    },
+    "isSignable": false
+  },
+  "docDetails": {
+    "documentType": "DELIVERY-ORDER",
+    "issueDate": "2025-10-17",
+    "term": "Deliver within 7 working days upon issue",
+    "attention": "Mr. Alex Wong, Procurement Manager",
+    "deliveryInfo": [
+      {
+        "deliveryDesc": "Solar Panel Type X200 (400W)",
+        "deliveryQty": "50",
+        "deliveryUOM": "pcs"
+      },
+      {
+        "deliveryDesc": "Mounting Brackets and Rails Set",
+        "deliveryQty": "25",
+        "deliveryUOM": "sets"
+      },
+      {
+        "deliveryDesc": "Inverter Model GTS-10K (3-phase)",
+        "deliveryQty": "5",
+        "deliveryUOM": "units"
+      }
+    ],
+    "explanation": "All goods are inspected prior to dispatch. Any damages must be reported within 3 working days.",
+    "others": "Delivery between 9:00 AM – 5:00 PM, Monday to Friday only.",
+    "certNo": "PC-2025-045"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "documentId": "PC-2025-045",
+  "quoteNumber": "QT-2025-007",
+  "recipient": {
+    "name": "Emily Tan",
+    "companyName": "BuildTech Construction Pte Ltd",
+    "emailAddress": "emily.tan@buildtech.com.sg",
+    "phoneNumber": "+65 9876 5432",
+    "fullAddress": {
+      "address": "456 Bukit Timah Road",
+      "city": "Singapore",
+      "state": "Singapore",
+      "zipcode": "259123"
+    },
+    "isSignable": false
+  },
+  "docDetails": {
+    "documentType": "PAYMENT-ORDER",
+    "issueDate": 1737062400,
+    "claimDate": 1736893200,
+    "paymentTerm": "30 days upon certification",
+    "claimSummary": [
+      {
+        "serialNo": "001",
+        "claimDesc": "Reinforced concrete works for basement structure",
+        "contAmt": 120000.0,
+        "prevClaim": 60000.0,
+        "currClaim": 30000.0,
+        "accumClaim": 90000.0,
+        "balanceAmt": 30000.0
+      },
+      {
+        "serialNo": "002",
+        "claimDesc": "Architectural finishing works for ground floor lobby",
+        "contAmt": 80000.0,
+        "prevClaim": 40000.0,
+        "currClaim": 20000.0,
+        "accumClaim": 60000.0,
+        "balanceAmt": 20000.0
+      },
+      {
+        "serialNo": "003",
+        "claimDesc": "Mechanical and electrical installation (Phase 2)",
+        "contAmt": 100000.0,
+        "prevClaim": 50000.0,
+        "currClaim": 25000.0,
+        "accumClaim": 75000.0,
+        "balanceAmt": 25000.0
+      }
+    ],
+    "currency": "SGD",
+    "finalAmt": 75000.0
+  }
+}
