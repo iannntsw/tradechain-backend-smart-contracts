@@ -179,6 +179,35 @@ npm run dev        # Start development server
 - Manages document store creation
 - Links stores to organizations
 
+## 🔍 Blockchain Explorer
+
+To view and interact with your deployed contracts and transactions:
+
+1. **Head to [Ethernal](https://app.tryethernal.com/)**
+2. **Create an account** (free signup required)
+3. **Add your local network:**
+   - Click "Add Network" or "Connect Network"
+   - Enter your RPC URL: `http://127.0.0.1:8545`
+
+4. **View your contracts and transactions:**
+   - Browse deployed contracts
+   - View transaction details
+   - Monitor contract interactions
+   - Debug smart contract calls
+
+### Contract Addresses
+After deployment, you'll see contract addresses in the terminal. These can be viewed in Ethernal:
+- **DocumentRegistry**: Manages document store factories
+- **DocumentStoreFactory**: Creates new document stores
+- **DocumentStore**: Individual document storage contracts
+
+### Transaction Links
+The frontend automatically generates links to Ethernal for all transactions:
+- Document issuance transactions
+- Document signing transactions  
+- Document revocation transactions
+- All links point to: `https://app.tryethernal.com/transaction/{transactionHash}`
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
@@ -201,6 +230,13 @@ npm run dev        # Start development server
    - Check if backend is running on port 3000
    - Verify API endpoints are accessible
    - Check browser console for errors
+
+5. **"Cannot connect to Ethernal"**
+   - Ensure Hardhat node is running on port 8545
+   - Verify RPC URL is correct: `http://localhost:8545`
+   - Check if Chain ID matches: `31337`
+   - Try refreshing the Ethernal page
+   - Ensure no firewall is blocking the connection
 
 ### Reset Everything
 
