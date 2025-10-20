@@ -423,12 +423,16 @@ app.post("/document/issue", authenticateToken, async (req, res) => {
     }
 
     // --- Issue document ---
+    const transactionHashes = [];
     const tx = await documentStoreWrite.issue(
       bytes32DocumentId,
       documentHash,
       bytes32DocumentType
     );
     await tx.wait();
+    
+    const issuedHash = { transactionHash: tx.hash, event: "DocumentIssued"}
+    transactionHashes.push(issuedHash);
 
     // --- Whitelist signer for this document ---
     const isSignable = recipient.isSignable;
@@ -439,6 +443,7 @@ app.post("/document/issue", authenticateToken, async (req, res) => {
         documentSignerAddress
       );
       await grantTx.wait();
+      transactionHashes.push({ transactionHash: grantTx.hash, event: "GrantRole"});
 
       const tx2 = await registryWrite.setSignerForDocument(
         bytes32DocumentId,
@@ -446,6 +451,7 @@ app.post("/document/issue", authenticateToken, async (req, res) => {
         true
       );
       await tx2.wait();
+      transactionHashes.push({ transactionHash: tx2.hash, event: "SetSignerForDocument"});
     }
 
     const isNowIssued = await documentStoreWrite.isIssued(bytes32DocumentId);
@@ -455,6 +461,7 @@ app.post("/document/issue", authenticateToken, async (req, res) => {
       documentType,
       quoteNumber,
       documentHash,
+      transactionHash: transactionHashes,
       issuerDocStore,
       signerDocStore: signer.documentStoreAddress,
       rawDocInfo: JSON.stringify(req.body),
@@ -523,6 +530,11 @@ app.post("/document/sign", authenticateToken, async (req, res) => {
     // --- Sign the document ---
     const tx = await documentStoreWrite.sign(documentIdHash);
     await tx.wait();
+    
+    await Documents.findOneAndUpdate(
+      { documentId },
+      { $push: { transactionHash: { transactionHash: tx.hash, event: "DocumentSigned" } } }
+    );
 
     const isNowSigned = await documentStoreWrite.signedAt(
       documentIdHash,
@@ -600,6 +612,10 @@ app.post("/document/revoke", authenticateToken, async (req, res) => {
     // --- Revoke the document ---
     const tx = await documentStoreWrite.revoke(documentIdHash, revokeReason);
     await tx.wait();
+    await Documents.findOneAndUpdate(
+      { documentId },
+      { $push: { transactionHash: { transactionHash: tx.hash, event: "DocumentRevoked" } } }
+    );
 
     // --- Verify revocation ---
     const isStillIssued = await documentStoreWrite.isIssued(documentIdHash);
@@ -618,9 +634,9 @@ app.post("/document/revoke", authenticateToken, async (req, res) => {
       transactionHash: tx.hash,
     });
   } catch (err) {
-    const msg = err.reason || err.message;
-    console.error("❌ Error revoking document:", msg);
-    res.status(500).json({ error: "Failed to revoke document", details: msg });
+    const msg = err.reason;
+    console.error("❌ Error signing document:", msg);
+    res.status(500).json({ error: "Failed to sign document", details: msg });
   }
 });
 

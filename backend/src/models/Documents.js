@@ -15,6 +15,10 @@ const documentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  transactionHash: {
+    type: Array,
+    required: true,
+  },
   quoteNumber: {
     type: String,
     required: true,
