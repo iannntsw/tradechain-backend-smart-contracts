@@ -8,6 +8,14 @@ const API_BASE_URL = 'http://localhost:3000';
 
 const users = [
   {
+    name: "Admin User",
+    email: "admin@gmail.com",
+    password: "password",
+    organisationId: "admin-org",
+    documentStoreAdmin: process.env.WALLET_ADDR_1,
+    userType: "admin"
+  },
+  {
     name: "Ian",
     email: "sales@gmail.com",
     password: "password",
@@ -73,7 +81,7 @@ async function seedUsers() {
   console.log('');
 
   // Check if environment variables are set
-  const requiredEnvVars = ['WALLET_ADDR_3', 'WALLET_ADDR_4', 'WALLET_ADDR_5'];
+  const requiredEnvVars = ['WALLET_ADDR_1', 'WALLET_ADDR_3', 'WALLET_ADDR_4', 'WALLET_ADDR_5'];
   const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
   
   if (missingEnvVars.length > 0) {
@@ -85,6 +93,7 @@ async function seedUsers() {
   }
 
   console.log('Environment variables found:');
+  console.log(`   WALLET_ADDR_1: ${process.env.WALLET_ADDR_1}`);
   console.log(`   WALLET_ADDR_3: ${process.env.WALLET_ADDR_3}`);
   console.log(`   WALLET_ADDR_4: ${process.env.WALLET_ADDR_4}`);
   console.log(`   WALLET_ADDR_5: ${process.env.WALLET_ADDR_5}`);

@@ -67,6 +67,11 @@ const factory = DocumentStoreFactoryAddress
 
 const factoryAdmin = new NonceManager(new ethers.Wallet(admin, provider));
 
+// Create NonceManager instances for each user type (reused across requests)
+const salesAdminWallet = new NonceManager(new ethers.Wallet(salesAdmin, provider));
+const purchaseAdminWallet = new NonceManager(new ethers.Wallet(purchaseAdmin, provider));
+const invoiceAdminWallet = new NonceManager(new ethers.Wallet(invoiceAdmin, provider));
+
 const factoryWrite = new ethers.Contract(
   DocumentStoreFactoryAddress,
   DocumentStoreFactoryABI,
@@ -93,11 +98,11 @@ function getSignerByUserType(userType) {
     case "admin":
       return factoryAdmin;
     case "sales":
-      return new NonceManager(new ethers.Wallet(salesAdmin, provider));
+      return salesAdminWallet;
     case "purchase":
-      return new NonceManager(new ethers.Wallet(purchaseAdmin, provider));
+      return purchaseAdminWallet;
     case "invoice":
-      return new NonceManager(new ethers.Wallet(invoiceAdmin, provider));
+      return invoiceAdminWallet;
     default:
       throw new Error(
         `❌ Invalid userType: ${userType}. Must be one of "admin", "sales", "purchase", "invoice".`
@@ -106,15 +111,16 @@ function getSignerByUserType(userType) {
 }
 
 /**
- * Selects the correct signer wallet based on userType.
+ * Selects the correct signer wallet address based on userType.
+ * Note: Admin user maps to WALLET_ADDR_1 (same as DocumentStoreFactory admin)
  * @param {string} userType - e.g. "admin", "sales", "purchase", or "invoice"
- * @returns {ethers.Wallet} Corresponding signer wallet address
+ * @returns {string} Corresponding wallet address
  * @throws {Error} If userType is invalid
  */
 function getSignerAddressByUserType(userType) {
   switch (userType?.toLowerCase()) {
     case "admin":
-      return process.env.WALLET_ADDR_2;
+      return process.env.WALLET_ADDR_1;
     case "sales":
       return process.env.WALLET_ADDR_3;
     case "purchase":
@@ -192,19 +198,63 @@ app.post("/user/new", async (req, res) => {
     );
     const rc1 = await tx1.wait();
 
-    // Find the StoreCreated event in the receipt logs
-    const event = rc1.logs
-      .map((log) => {
-        try {
-          return factory.interface.parseLog(log);
-        } catch {
-          return null;
-        }
-      })
-      .find((parsed) => parsed && parsed.name === "StoreCreated");
+    // Find the StoreCreated event in the receipt logs with retry mechanism
+    let event = null;
+    let storeAddress = null;
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryInterval = 5000; // 2 seconds
 
-    // Extract store address if event found
-    const storeAddress = event ? event.args.store : null;
+    while (!event && retryCount < maxRetries) {
+      console.log(`Attempting to find StoreCreated event (attempt ${retryCount + 1}/${maxRetries})`);
+      
+      // Try to find the event in the current receipt logs
+      event = rc1.logs
+        .map((log) => {
+          try {
+            return factory.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed) => parsed && parsed.name === "StoreCreated");
+
+      if (event) {
+        storeAddress = event.args.store;
+        console.log(`✅ StoreCreated event found on attempt ${retryCount + 1}: ${storeAddress}`);
+        break;
+      }
+
+      // If event not found and we haven't reached max retries, wait and try again
+      if (retryCount < maxRetries - 1) {
+        console.log(`StoreCreated event not found, waiting ${retryInterval}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        
+        // Try to get updated transaction receipt
+        try {
+          const updatedReceipt = await provider.getTransactionReceipt(tx1.hash);
+          if (updatedReceipt && updatedReceipt.logs) {
+            rc1.logs = updatedReceipt.logs;
+            console.log(`Updated receipt with ${updatedReceipt.logs.length} logs`);
+          }
+        } catch (receiptError) {
+          console.log(`Failed to get updated receipt: ${receiptError.message}`);
+        }
+      }
+      
+      retryCount++;
+    }
+
+    // If still no event found after all retries
+    if (!event) {
+      console.error(`❌ StoreCreated event not found after ${maxRetries} attempts`);
+      console.error("Available logs:", rc1.logs.map(log => ({
+        address: log.address,
+        topics: log.topics,
+        data: log.data
+      })));
+      throw new Error(`Failed to find StoreCreated event after ${maxRetries} attempts`);
+    }
 
     // Create user in MongoDB (password will be automatically hashed by pre-save hook)
     const newUser = new User({
@@ -233,6 +283,20 @@ app.post("/user/new", async (req, res) => {
       return res.status(400).json({
         error: "User with this email already exists",
         field: "email",
+      });
+    }
+
+    // Handle nonce-related errors
+    if (err.message && err.message.includes("Nonce too high")) {
+      console.error("❌ Nonce error detected. This usually means:");
+      console.error("   1. The blockchain node is in automining mode");
+      console.error("   2. Multiple transactions are being sent simultaneously");
+      console.error("   3. The NonceManager is not properly tracking nonces");
+      
+      return res.status(500).json({
+        error: "Blockchain transaction failed due to nonce conflict",
+        details: "Please try again in a few seconds. If the problem persists, restart the blockchain node.",
+        technicalDetails: err.message
       });
     }
 
@@ -302,6 +366,14 @@ app.post("/user/login", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         error: "Invalid email or password",
+      });
+    }
+
+    // Check if user account is approved
+    if (userRecord.status !== 'approved') {
+      return res.status(403).json({
+        error: "Account not approved. Please contact administrator.",
+        status: userRecord.status
       });
     }
 
@@ -779,7 +851,9 @@ app.get("/document/single", authenticateToken, async (req, res) => {
 
     const issuerDocStore = document.issuerDocStore;
     const signerDocStore = document.signerDocStore;
-    const issuer = await User.findOne({ where: { documentStoreAddress: issuerDocStore } }).select('-password');
+    console.log(issuerDocStore);
+    const issuer = await User.findOne({ documentStoreAddress: issuerDocStore }).select('-password');
+    console.log(issuer);
     if (!issuer) {
       return res.status(404).json({ error: "Issuer not found" });
     }
@@ -830,6 +904,152 @@ app.get("/document/single", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("❌ Error getting document:", err);
     res.status(500).json({ error: "Failed to get document", details: err.message });
+  }
+});
+
+// Admin endpoints for user management
+// Get all pending users (admin only)
+app.get("/admin/pending-users", authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({
+        error: "Access denied. Admin privileges required."
+      });
+    }
+
+    const pendingUsers = await User.find({ status: 'pending' }).select('-password');
+    
+    res.status(200).json({
+      message: "✅ Pending users retrieved successfully",
+      users: pendingUsers
+    });
+  } catch (err) {
+    console.error("❌ Error getting pending users:", err);
+    res.status(500).json({
+      error: "Failed to get pending users",
+      details: err.message
+    });
+  }
+});
+
+// Get all users (admin only)
+app.get("/admin/users", authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({
+        error: "Access denied. Admin privileges required."
+      });
+    }
+
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      message: "✅ All users retrieved successfully",
+      users: users
+    });
+  } catch (err) {
+    console.error("❌ Error getting all users:", err);
+    res.status(500).json({
+      error: "Failed to get users",
+      details: err.message
+    });
+  }
+});
+
+// Approve user account (admin only)
+app.put("/admin/users/:userId/approve", authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({
+        error: "Access denied. Admin privileges required."
+      });
+    }
+
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    user.status = 'approved';
+    await user.save();
+
+    res.status(200).json({
+      message: "✅ User approved successfully",
+      user: user.toSafeObject()
+    });
+  } catch (err) {
+    console.error("❌ Error approving user:", err);
+    res.status(500).json({
+      error: "Failed to approve user",
+      details: err.message
+    });
+  }
+});
+
+// Reject user account (admin only)
+app.put("/admin/users/:userId/reject", authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({
+        error: "Access denied. Admin privileges required."
+      });
+    }
+
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    user.status = 'rejected';
+    await user.save();
+
+    res.status(200).json({
+      message: "✅ User rejected successfully",
+      user: user.toSafeObject()
+    });
+  } catch (err) {
+    console.error("❌ Error rejecting user:", err);
+    res.status(500).json({
+      error: "Failed to reject user",
+      details: err.message
+    });
+  }
+});
+
+// Get all documents (admin only - read-only access)
+app.get("/admin/documents", authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({
+        error: "Access denied. Admin privileges required."
+      });
+    }
+
+    const documents = await Documents.find({}).sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      message: "✅ All documents retrieved successfully",
+      documents: documents
+    });
+  } catch (err) {
+    console.error("❌ Error getting all documents:", err);
+    res.status(500).json({
+      error: "Failed to get documents",
+      details: err.message
+    });
   }
 });
 

@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'sales', 'purchase', 'invoice'],
     required: true
   },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
   createdAt: {
     type: Date,
     default: Date.now
