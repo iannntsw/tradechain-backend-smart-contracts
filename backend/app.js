@@ -111,6 +111,18 @@ function getSignerByUserType(userType) {
 }
 
 /**
+ * Resets the NonceManager's nonce to sync with the blockchain
+ * @param {NonceManager} nonceManager - The NonceManager instance to reset
+ */
+async function resetNonceManager(nonceManager) {
+  try {
+    await nonceManager.reset();
+  } catch (err) {
+    console.warn("⚠️  Failed to reset NonceManager, continuing anyway:", err.message);
+  }
+}
+
+/**
  * Selects the correct signer wallet address based on userType.
  * Note: Admin user maps to WALLET_ADDR_1 (same as DocumentStoreFactory admin)
  * @param {string} userType - e.g. "admin", "sales", "purchase", or "invoice"
@@ -190,6 +202,9 @@ app.post("/user/new", async (req, res) => {
 
     // Convert to bytes32
     const bytes32OrganisationId = ethers.id(organisationId);
+
+    // Reset nonce manager before creating store
+    await resetNonceManager(factoryAdmin);
 
     // Create document store on blockchain
     const tx1 = await factoryWrite.createStore(
@@ -447,6 +462,9 @@ app.post("/document/issue", authenticateToken, async (req, res) => {
     const { docDetails, recipient, quoteNumber, documentId } = req.body;
     const issuerDocStore = user.documentStoreAddress;
     const issuerSigner = getSignerByUserType(user.userType);
+    
+    // Reset nonce manager to sync with blockchain state
+    await resetNonceManager(issuerSigner);
 
     const signer = await User.findOneByEmail(recipient.emailAddress);
     if (!signer) {
@@ -578,6 +596,8 @@ app.post("/document/sign", authenticateToken, async (req, res) => {
     }
 
     const signer = getSignerByUserType(user.userType);
+    await resetNonceManager(signer);
+    
     const documentStoreWrite = new ethers.Contract(
       document.issuerDocStore,
       DocumentStoreABI,
@@ -663,6 +683,8 @@ app.post("/document/revoke", authenticateToken, async (req, res) => {
 
     // Get the revoker signer (should have REVOKER_ROLE)
     const revokerSigner = getSignerByUserType(user.userType);
+    await resetNonceManager(revokerSigner);
+    
     const documentStoreWrite = new ethers.Contract(
       document.issuerDocStore,
       DocumentStoreABI,
